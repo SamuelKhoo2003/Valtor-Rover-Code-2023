@@ -109,6 +109,89 @@ void handleRoot()
   server.client().stop(); 
 }
 
+void detect_age()
+{
+  unsigned long alien_age = 0;
+  unsigned long sum = 0; 
+  unsigned long period = 0; 
+  String age_result = "N/A"; 
+  while(digitalRead(age_pin) == HIGH){}
+    for( int i = 0; i < 100; i++)
+    {
+      unsigned long ontime = pulseIn(4, HIGH, 3000000UL);
+      unsigned long offtime = pulseIn(4,LOW, 3000000UL);
+      unsigned long pulseDuration = ontime + offtime;
+      sum = sum + pulseDuration;
+    }
+    period = sum / 100; 
+    alien_age = period / 10; 
+
+    if(alien_age != 0){
+    age_result = String(alien_age); 
+    }
+  server.send(200, "application/json", "{\"state\": \"" + age_result + "\"}");
+  Serial.println(age_result); 
+}
+
+void detect_magnetism()
+{
+  String magnet_result = "No magnetic field detected"; 
+  digitalWrite(A0, HIGH);
+  int inputState1 = digitalRead(magnet_input_pin1);
+  int inputState2 = digitalRead(magnet_input_pin2);
+  
+  if (inputState1 == HIGH) {
+    magnet_result = "DOWN"; 
+  }
+
+  else if (inputState2 == HIGH) {
+    magnet_result = "UP"; 
+  }
+
+  server.send(200, "application/json", "{\"state\": \"" + magnet_result + "\"}");
+  Serial.println(magnet_result); 
+
+  digitalWrite(A0, LOW); 
+  //short delay allow for switching between 0 and 3.3V output
+  delay(1500); 
+}
+
+void detect_name()
+{
+  String name_result = "N/A"; 
+  char temp[4] = {0, 0, 0, 0}; 
+  while(digitalRead(name_pin) == HIGH){}
+    delayMicroseconds(1200000 / 600); //when the start bit is detected, apply a delay before reading the character
+      for (int i = 0; i < 8; i++) {
+        temp[0] |= (digitalRead(8) << i); //each time we read a bit we shift it left by i (because each character is written in reverse order)
+        delayMicroseconds(1000000 / 600); //this delay is to allow a suitable transition from bit to bit before attempting to read each bit
+      }
+  
+    delayMicroseconds(2000000 / 600);
+      for (int i = 0; i < 8; i++) {
+        temp[1] |= (digitalRead(8) << i);
+        delayMicroseconds(1000000 / 600);
+      }
+
+    delayMicroseconds(2000000 / 600);
+      for (int i = 0; i < 8; i++) {
+        temp[2] |= (digitalRead(8) << i);
+        delayMicroseconds(1000000 / 600);
+      }
+
+    delayMicroseconds(2000000 / 600);
+      for (int i = 0; i < 8; i++) {
+        temp[3] |= (digitalRead(8) << i);
+        delayMicroseconds(1000000 / 600);
+      }
+
+    delayMicroseconds(1000000 / 600);
+    name_result = String(temp[0]) + String(temp[1]) + String(temp[2]) + String(temp[3]); 
+
+  server.send(200, "application/json", "{\"state\": \"" + name_result + "\"}");
+  Serial.println(name_result); 
+}
+
 //Switch LED on and acknowledge
 void d_forward()
 {
@@ -153,6 +236,21 @@ void d_left()
   analogWrite(2, 255); 
   analogWrite(0, 255); 
 }
+
+void handleDetect() {
+  String type = server.arg("type");
+  
+  if (type == "age") {
+    detect_age();
+  } else if (type == "magnetism") {
+    detect_magnetism();
+  } else if (type == "name") {
+    detect_name();
+  } else {
+    server.send(400, "text/plain", "Invalid detect type");
+  }
+}
+
 //Generate a 404 response with details of the failed request
 void handleNotFound()
 {
@@ -209,6 +307,7 @@ void setup()
   server.on(F("/stop"), d_stop); 
   server.on(F("/right"), d_right); 
   server.on(F("/left"), d_left); 
+  server.on(F("/detect"), handleDetect);
   server.onNotFound(handleNotFound);
   
   server.begin();
