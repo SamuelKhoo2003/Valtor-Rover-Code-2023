@@ -13,24 +13,24 @@ void setup() {
 }
 void loop() {
   // Read the state of the input pin
-  analogWrite(A0,255);
+  digitalWrite(A0,HIGH);
   int inputState1 = digitalRead(inputPin1);
   int inputState2 = digitalRead(inputPin2);
-  
-  
+   
   // Check if the input pin is HIGH
   if (inputState1 == HIGH) {
     // Output a message
-    Serial.println("Down");
+    Serial.println("Up");
   }
    else if (inputState2 == HIGH) {
-     Serial.println("Up");
+     Serial.println("Down");
    }
     else {
       Serial.println("No magnetic field detected.");
     }
   
   // Delay for a short period
-  analogWrite(A0,0);
+
+  digitalWrite(A0, LOW); 
   delay(1500); 
 }
