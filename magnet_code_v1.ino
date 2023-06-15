@@ -9,11 +9,11 @@ void setup() {
   // Set the input pin as INPUT
   pinMode(inputPin1, INPUT);
   pinMode(inputPin2, INPUT);
-  pinMode(7, OUTPUT);
+  pinMode(A0, OUTPUT);
 }
 void loop() {
   // Read the state of the input pin
-  analogWrite(0,255);
+  analogWrite(A0,255);
   int inputState1 = digitalRead(inputPin1);
   int inputState2 = digitalRead(inputPin2);
   
@@ -31,6 +31,6 @@ void loop() {
     }
   
   // Delay for a short period
-  analogWrite(0,0);
+  analogWrite(A0,0);
   delay(1500); 
 }
