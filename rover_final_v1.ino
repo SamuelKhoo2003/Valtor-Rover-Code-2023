@@ -8,8 +8,7 @@ const char ssid[] = "EEERover";
 const char pass[] = "exhibition";
 const int groupNumber = 23; // Set your group number to make the IP address constant - only do this on the EEERover network
 const int age_pin = 4; 
-const int magnet_input_pin1 = 12; 
-const int magnet_input_pin2 = 13; 
+const int magnetism_pin = A3; 
 const int name_pin = 8; 
 const int dir_left = 1; 
 const int dir_right = 3;
@@ -45,15 +44,15 @@ const char webpage1[] =
 "<div class=\"btn-movement\">"
 "<button class=\"btn\" onmousedown=\"sendCommand('reverse')\" onmouseup=\"sendCommand('stop')\" onmouseleave=\"sendCommand('stop')\">&darr;</button>"
 "</div>"
-"</div>"
+"</div>"; 
+
+const char webpage2[] = 
 "<div class=\"row btn-group\">"
 "<div class=\"btn-sensor\">"
 "<button class=\"btn\" onclick=\"startDetect('age')\">Start Age Detection</button>"
 "<div id=\"ageResult\" class=\"result\">N/A</div>"
 "</div>"
-"</div>"; 
-
-const char webpage2[] = 
+"</div>"
 "<div class=\"row btn-group\">"
 "<div class=\"btn-sensor\">"
 "<button class=\"btn\" onclick=\"startDetect('magnetism')\">Start Magnetism Detection</button>"
@@ -70,6 +69,17 @@ const char webpage2[] =
 "<script>"; 
 
 const char webpage3[] = 
+"document.addEventListener(\"keydown\", function(event) {"
+"if (event.key === \"w\" || event.key === \"ArrowUp\") {sendCommand(\"forward\");}"
+"else if (event.key === \"s\" || event.key === \"ArrowDown\") {sendCommand(\"reverse\");}"
+"else if (event.key === \"a\" || event.key === \"ArrowLeft\") {sendCommand(\"left\");}"
+"else if (event.key === \"d\" || event.key === \"ArrowRight\") {sendCommand(\"right\");}"
+"});"
+"document.addEventListener(\"keyup\", function(event) {"
+"if (event.key === \"w\" || event.key === \"s\" || event.key === \"a\" || event.key === \"d\" || event.key === \"ArrowUp\" || event.key === \"ArrowDown\" || event.key === \"ArrowLeft\" || event.key === \"ArrowRight\") {sendCommand(\"stop\");}"
+"});"; 
+
+const char webpage4[] = 
 "function startDetect(type) {"
 "var xhttp = new XMLHttpRequest();"
 "xhttp.onreadystatechange = function() {"
@@ -96,16 +106,21 @@ const char webpage3[] =
 
 
 
+
 WiFiWebServer server(80);
 //Return the web page
 void handleRoot()
 {
+  server.sendHeader("Cache-control", "no-cache, no-store, must-revalidate"); 
+  server.sendHeader("Pragma", "no-cache"); 
+  server.sendHeader("Expires", "-1"); 
   server.setContentLength(CONTENT_LENGTH_UNKNOWN); 
   server.send(200, "text/html", ""); 
   server.sendContent(webpage0); 
   server.sendContent(webpage1); 
   server.sendContent(webpage2); 
   server.sendContent(webpage3); 
+  server.sendContent(webpage4); 
   server.client().stop(); 
 }
 
@@ -135,25 +150,21 @@ void detect_age()
 
 void detect_magnetism()
 {
-  String magnet_result = "No magnetic field detected"; 
-  digitalWrite(A0, HIGH);
-  int inputState1 = digitalRead(magnet_input_pin1);
-  int inputState2 = digitalRead(magnet_input_pin2);
-  
-  if (inputState1 == HIGH) {
-    magnet_result = "DOWN"; 
+  String magnet_result = "N/A"; 
+
+  int threshold = 786;
+  unsigned long MagS = (analogRead(A3));
+  // Serial.println(MagS); 
+  if(MagS < threshold-3){
+    magnet_result = "Down";
   }
 
-  else if (inputState2 == HIGH) {
-    magnet_result = "UP"; 
+  else if(MagS > threshold+3){
+    magnet_result = "Up";
   }
 
   server.send(200, "application/json", "{\"state\": \"" + magnet_result + "\"}");
   Serial.println(magnet_result); 
-
-  digitalWrite(A0, LOW); 
-  //short delay allow for switching between 0 and 3.3V output
-  delay(1500); 
 }
 
 void detect_name()
@@ -198,8 +209,8 @@ void d_forward()
   digitalWrite(LED_BUILTIN,1);
   digitalWrite(3, 1); 
   digitalWrite(1, 1); 
-  analogWrite(2, 255); 
-  analogWrite(0, 255); 
+  analogWrite(2, 1024); 
+  analogWrite(0, 1024); 
 }
 //Switch LED off and acknowledge
 void d_reverse()
@@ -225,16 +236,16 @@ void d_right()
   digitalWrite(LED_BUILTIN, 1); 
   digitalWrite(3, 0); 
   digitalWrite(1, 1); 
-  analogWrite(2, 255); 
-  analogWrite(0, 255);  
+  analogWrite(2, 200); 
+  analogWrite(0, 200);  
 }
 void d_left()
 {
   digitalWrite(LED_BUILTIN, 1); 
   digitalWrite(3, 1); 
   digitalWrite(1, 0); 
-  analogWrite(2, 255); 
-  analogWrite(0, 255); 
+  analogWrite(2, 200); 
+  analogWrite(0, 200); 
 }
 
 void handleDetect() {
@@ -249,6 +260,24 @@ void handleDetect() {
   } else {
     server.send(400, "text/plain", "Invalid detect type");
   }
+}
+
+void handleCommand() {
+  String command = server.arg("type");
+  
+  if (command == "forward") {
+    d_forward();
+  } else if (command == "reverse") {
+    d_reverse();
+  } else if (command == "stop") {
+    d_stop();
+  } else if (command == "left") {
+    d_left();
+  } else if (command == "right") {
+    d_right();
+  }
+  
+  server.send(200, "text/plain", "OK");
 }
 
 //Generate a 404 response with details of the failed request
@@ -276,9 +305,7 @@ void setup()
   pinMode(0, OUTPUT); 
   pinMode(3, OUTPUT); 
   pinMode(1, OUTPUT); 
-  pinMode(A0, OUTPUT); 
-  pinMode(12, INPUT); 
-  pinMode(13, INPUT); 
+  pinMode(A3, INPUT); 
   pinMode(8, INPUT); 
   pinMode(4, INPUT); 
   //Use baud 115200 as it is higher ping rate and more responsive compared to 9600 
@@ -302,12 +329,8 @@ void setup()
   }
   //Register the callbacks to respond to HTTP requests
   server.on(F("/"), handleRoot);
-  server.on(F("/forward"), d_forward);
-  server.on(F("/reverse"), d_reverse);
-  server.on(F("/stop"), d_stop); 
-  server.on(F("/right"), d_right); 
-  server.on(F("/left"), d_left); 
   server.on(F("/detect"), handleDetect);
+  server.on(F("/command"), handleCommand); 
   server.onNotFound(handleNotFound);
   
   server.begin();
