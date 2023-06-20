@@ -68,16 +68,17 @@ const char webpage2[] =
 "</div></body>"
 "<script>"; 
 
-const char webpage3[] = 
-"document.addEventListener(\"keydown\", function(event) {"
-"if (event.key === \"w\" || event.key === \"ArrowUp\") {sendCommand(\"forward\");}"
-"else if (event.key === \"s\" || event.key === \"ArrowDown\") {sendCommand(\"reverse\");}"
-"else if (event.key === \"a\" || event.key === \"ArrowLeft\") {sendCommand(\"left\");}"
-"else if (event.key === \"d\" || event.key === \"ArrowRight\") {sendCommand(\"right\");}"
-"});"
-"document.addEventListener(\"keyup\", function(event) {"
-"if (event.key === \"w\" || event.key === \"s\" || event.key === \"a\" || event.key === \"d\" || event.key === \"ArrowUp\" || event.key === \"ArrowDown\" || event.key === \"ArrowLeft\" || event.key === \"ArrowRight\") {sendCommand(\"stop\");}"
-"});"; 
+// const char webpage3[] = 
+// "document.addEventListener(\"keydown\", function(event) {"
+// "if (event.key === \"w\" || event.key === \"ArrowUp\") {sendCommand(\"forward\");}"
+// "else if (event.key === \"s\" || event.key === \"ArrowDown\") {sendCommand(\"reverse\");}"
+// "else if (event.key === \"a\" || event.key === \"ArrowLeft\") {sendCommand(\"left\");}"
+// "else if (event.key === \"d\" || event.key === \"ArrowRight\") {sendCommand(\"right\");}"
+// "else if (event.key === \" \") {sendCommand(\"stop\"); event.preventDefault();}" // Added event.preventDefault() to prevent space from triggering default behavior
+// "});"
+// "document.addEventListener(\"keyup\", function(event) {"
+// "if ((event.key === \"w\" || event.key === \"ArrowUp\" || event.key === \"s\" || event.key === \"ArrowDown\" || event.key === \"a\" || event.key === \"ArrowLeft\" || event.key === \"d\" || event.key === \"ArrowRight\") && event.key !== \" \") {sendCommand(\"stop\");}"
+// "});";
 
 const char webpage4[] = 
 "function startDetect(type) {"
@@ -104,9 +105,6 @@ const char webpage4[] =
 "</script>"
 "</html>";
 
-
-
-
 WiFiWebServer server(80);
 //Return the web page
 void handleRoot()
@@ -119,7 +117,7 @@ void handleRoot()
   server.sendContent(webpage0); 
   server.sendContent(webpage1); 
   server.sendContent(webpage2); 
-  server.sendContent(webpage3); 
+ // server.sendContent(webpage3); 
   server.sendContent(webpage4); 
   server.client().stop(); 
 }
@@ -130,7 +128,7 @@ void detect_age()
   unsigned long sum = 0; 
   unsigned long period = 0; 
   String age_result = "N/A"; 
-  while(digitalRead(age_pin) == HIGH){}
+  if (digitalRead(age_pin) != HIGH){
     for( int i = 0; i < 100; i++)
     {
       unsigned long ontime = pulseIn(4, HIGH, 3000000UL);
@@ -144,27 +142,28 @@ void detect_age()
     if(alien_age != 0){
     age_result = String(alien_age); 
     }
+  }
+
   server.send(200, "application/json", "{\"state\": \"" + age_result + "\"}");
   Serial.println(age_result); 
 }
 
+
 void detect_magnetism()
 {
   String magnet_result = "N/A"; 
-
-  int threshold = 786;
   unsigned long MagS = (analogRead(A3));
-  // Serial.println(MagS); 
-  if(MagS < threshold-3){
+  int threshold = 760; 
+  if(MagS < threshold-5){
     magnet_result = "Down";
   }
-
-  else if(MagS > threshold+3){
+  if(MagS > threshold+5){
     magnet_result = "Up";
   }
 
-  server.send(200, "application/json", "{\"state\": \"" + magnet_result + "\"}");
-  Serial.println(magnet_result); 
+  String analog_result = String(MagS); 
+  server.send(200, "application/json", "{\"state\": \"" + magnet_result + " = " + analog_result + "\"}");
+
 }
 
 void detect_name()
@@ -209,8 +208,8 @@ void d_forward()
   digitalWrite(LED_BUILTIN,1);
   digitalWrite(3, 1); 
   digitalWrite(1, 1); 
-  analogWrite(2, 1024); 
-  analogWrite(0, 1024); 
+  analogWrite(2, 255); 
+  analogWrite(0, 255); 
 }
 //Switch LED off and acknowledge
 void d_reverse()
@@ -236,16 +235,16 @@ void d_right()
   digitalWrite(LED_BUILTIN, 1); 
   digitalWrite(3, 0); 
   digitalWrite(1, 1); 
-  analogWrite(2, 200); 
-  analogWrite(0, 200);  
+  analogWrite(2, 150); 
+  analogWrite(0, 150);  
 }
 void d_left()
 {
   digitalWrite(LED_BUILTIN, 1); 
   digitalWrite(3, 1); 
   digitalWrite(1, 0); 
-  analogWrite(2, 200); 
-  analogWrite(0, 200); 
+  analogWrite(2, 150); 
+  analogWrite(0, 150); 
 }
 
 void handleDetect() {
@@ -307,9 +306,10 @@ void setup()
   pinMode(1, OUTPUT); 
   pinMode(A3, INPUT); 
   pinMode(8, INPUT); 
-  pinMode(4, INPUT); 
+  pinMode(4, INPUT);
+  // threshold = analogRead(A3);
   //Use baud 115200 as it is higher ping rate and more responsive compared to 9600 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   if (WiFi.status() == WL_NO_SHIELD)
   {
