@@ -153,7 +153,7 @@ void detect_magnetism()
 {
   String magnet_result = "N/A"; 
   unsigned long MagS = (analogRead(A3));
-  int threshold = 760; 
+  int threshold = 777; 
   if(MagS < threshold-5){
     magnet_result = "Down";
   }
@@ -162,7 +162,8 @@ void detect_magnetism()
   }
 
   String analog_result = String(MagS); 
-  server.send(200, "application/json", "{\"state\": \"" + magnet_result + " = " + analog_result + "\"}");
+  String output_threshold = String(threshold); 
+  server.send(200, "application/json", "{\"state\": \"" + magnet_result + " = " + analog_result + " Threshold = " + threshold + "\"}");
 
 }
 
@@ -194,7 +195,6 @@ void detect_name()
         temp[3] |= (digitalRead(8) << i);
         delayMicroseconds(1000000 / 600);
       }
-
     delayMicroseconds(1000000 / 600);
     name_result = String(temp[0]) + String(temp[1]) + String(temp[2]) + String(temp[3]); 
 
