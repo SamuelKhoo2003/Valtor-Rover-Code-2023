@@ -13,7 +13,7 @@ The code includes various functionalities for controlling the rover, including m
 
 ## Project Report
 
-For a detailed overview of the project, including design decisions, implementation details, and results, please refer to the [full project report(Valtor%20-%20Samuel%20Khoo-compressed.pdf) available in this repository.
+For a detailed overview of the project, including design decisions, implementation details, and results, please refer to the `Valtor - Samuel Khoo-compressed.pdf` available in this repository.
 
 ---
 
