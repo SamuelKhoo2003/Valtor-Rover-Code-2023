@@ -11,6 +11,12 @@ The code includes various functionalities for controlling the rover, including m
 - Basic obstacle avoidance algorithm
 - Simple web server for remote control and monitoring
 
+## Project Report
+
+For a detailed overview of the project, including design decisions, implementation details, and results, please refer to the [full project report](Valtor - Samuel Khoo-compressed.pdf) available in this repository.
+
 ---
 
 This project was a collaborative effort to enhance our practical skills in embedded systems and robotics.
+
+
